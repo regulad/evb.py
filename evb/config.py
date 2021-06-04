@@ -169,10 +169,11 @@ class StatsResponse:
         return datetime.strptime(self._latest_edit, DATETIME_FORMAT)
 
     @property
-    def favourite_cmd(self) -> Command:  # Meh. Kinda Janky.
-        for command in Commands.__members__.values():
-            if command.NAME == self._favourite_cmd:
-                return command
+    def favourite_cmd(self):  # Meh. Kinda Janky.
+        commands_view = Commands.__members__.values()
+        for command in commands_view:
+            if command.value.NAME == self._favourite_cmd:
+                return command.value
 
     def __dict__(self):
         return {
