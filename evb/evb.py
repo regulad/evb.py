@@ -1,11 +1,14 @@
+from io import FileIO
+from os.path import basename
 from typing import Optional, Iterable
 
 from aiohttp import ClientSession, ClientResponse, FormData
 
-from .config import *
-from .errors import *
-from .commands import *
 from ._decos import *
+from ._endpoint import *
+from .commands import *
+from .errors import *
+from .responses import *
 
 
 def _process_resp(resp: ClientResponse) -> None:
@@ -52,7 +55,10 @@ class AsyncEditVideoBotSession:
         }
 
     @require_session
-    async def edit(self, media: bytes, commands: Iterable[Commands]) -> bytes:
+    async def edit(self, fp: FileIO, commands: Iterable[Commands]) -> bytes:
+        """Edit a file-like object using the /edit/ endpoint.
+        Due to an API limitation, the file-lke object must have a name attribute."""
+
         command_strs = []
 
         for command in commands:
@@ -62,12 +68,10 @@ class AsyncEditVideoBotSession:
 
         form = FormData()
 
-        form.add_field("file", media)
+        form.add_field("file", fp, filename=basename(fp.name))
         form.add_field("commands", command_str)
 
-        async with self.client_session.post(
-                "https://pigeonburger.xyz/api/edit/", headers=self._headers, data=form
-        ) as resp:
+        async with self.client_session.post(f"{ENDPOINT}edit/", headers=self._headers, data=form) as resp:
             _process_resp(resp)
 
             try:
@@ -84,7 +88,9 @@ class AsyncEditVideoBotSession:
 
     @require_session
     async def stats(self) -> StatsResponse:
-        async with self.client_session.get("https://pigeonburger.xyz/api/stats/", headers=self._headers) as resp:
+        """Retrieve stats from the /stats/ endpoint."""
+
+        async with self.client_session.get(f"{ENDPOINT}stats/", headers=self._headers) as resp:
             _process_resp(resp)
 
             try:

@@ -2,7 +2,6 @@ from datetime import datetime
 
 from .commands import *
 
-
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
