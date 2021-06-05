@@ -358,7 +358,7 @@ class DownloadVideo(Command):
     """Just put this in a reply to someone if you just want to download their video, not edit it or anything else.
     Does not work with any other commands. For videos only."""
 
-    NAME = "downloadvoice"
+    NAME = "downloadvid"
 
 
 class Reverse(Command):

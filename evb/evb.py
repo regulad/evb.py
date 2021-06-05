@@ -1,6 +1,6 @@
 from typing import Optional, Iterable
 
-from aiohttp import ClientSession, ClientResponse
+from aiohttp import ClientSession, ClientResponse, FormData
 
 from .config import *
 from .errors import *
@@ -48,7 +48,6 @@ class AsyncEditVideoBotSession:
     @property
     def _headers(self):
         return {
-            "Content-Type": "application/json; charset=utf-8",
             "EVB_AUTH": self._authorization.token
         }
 
@@ -61,13 +60,13 @@ class AsyncEditVideoBotSession:
 
         command_str = ", ".join(command_strs)
 
-        command_json = {
-            "file": media,
-            "commands": command_str,
-        }
+        form = FormData()
+
+        form.add_field("file", media)
+        form.add_field("commands", command_str)
 
         async with self.client_session.post(
-                "https://pigeonburger.xyz/api/edit/", headers=self._headers, data=command_json
+                "https://pigeonburger.xyz/api/edit/", headers=self._headers, data=form
         ) as resp:
             _process_resp(resp)
 
