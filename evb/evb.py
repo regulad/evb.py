@@ -1,17 +1,16 @@
-from io import FileIO
-from os.path import basename
-from typing import Optional, Iterable
+from functools import wraps
+from io import BytesIO
+from typing import Optional
 
 from aiohttp import ClientSession, ClientResponse, FormData
 
-from ._decos import *
-from ._endpoint import *
-from .commands import *
 from .errors import *
 from .responses import *
 
+ENDPOINT = "https://pigeonburger.xyz/api/v1/"
 
-def _process_resp(resp: ClientResponse) -> None:
+
+def process_resp(resp: ClientResponse) -> None:
     if resp.ok:
         return None
     elif resp.status == 401:
@@ -20,6 +19,17 @@ def _process_resp(resp: ClientResponse) -> None:
         raise RatelimitException(resp=resp)
     else:
         raise HTTPException(resp.reason, status_code=resp.status)
+
+
+def require_session(func):
+    @wraps(func)
+    async def wrapper(self, *args, **kwargs):
+        if self.client_session:
+            return await func(self, *args, **kwargs)
+        else:
+            raise NoInitialisedSession
+
+    return wrapper
 
 
 class AsyncEditVideoBotSession:
@@ -55,24 +65,20 @@ class AsyncEditVideoBotSession:
         }
 
     @require_session
-    async def edit(self, fp: FileIO, commands: Iterable[Commands]) -> bytes:
+    async def edit(self, input_media: bytes, commands: str, ext: str = "mp4") -> bytes:
         """Edit a file-like object using the /edit/ endpoint.
-        Due to an API limitation, the file-lke object must have a name attribute."""
 
-        command_strs = []
-
-        for command in commands:
-            command_strs.append(command.__str__())
-
-        command_str = ", ".join(command_strs)
+        :argument input_media Bytes of media to be sent to the API.
+        :argument commands A valid EditVideoBot command string.
+        :argument ext File extension to use when creating the file to be sent to the API. Default is mp4."""
 
         form = FormData()
 
-        form.add_field("file", fp, filename=basename(fp.name))
-        form.add_field("commands", command_str)
+        form.add_field("file", BytesIO(input_media), filename=f"input.{ext}")
+        form.add_field("commands", commands)
 
         async with self.client_session.post(f"{ENDPOINT}edit/", headers=self._headers, data=form) as resp:
-            _process_resp(resp)
+            process_resp(resp)
 
             try:
                 response_data = EditResponse.from_json(await resp.json())
@@ -82,7 +88,7 @@ class AsyncEditVideoBotSession:
                 raise
 
         async with self.client_session.get(response_data.media_url) as resp:
-            _process_resp(resp)
+            process_resp(resp)
 
             return await resp.read()
 
@@ -91,7 +97,7 @@ class AsyncEditVideoBotSession:
         """Retrieve stats from the /stats/ endpoint."""
 
         async with self.client_session.get(f"{ENDPOINT}stats/", headers=self._headers) as resp:
-            _process_resp(resp)
+            process_resp(resp)
 
             try:
                 return StatsResponse.from_json(await resp.json())

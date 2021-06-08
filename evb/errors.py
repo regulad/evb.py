@@ -23,12 +23,7 @@ class HTTPException(LibraryException):
 
 
 class RatelimitException(HTTPException):
-    """Raised when getting a 429 response from the API
-
-    Parameters:
-        resp_content: Response body    as str
-        resp_headers: Response headers as dict
-    """
+    """Raised when getting a 429 response from the API"""
 
     def __init__(self, *args, resp: ClientResponse):
         self.resp = resp
@@ -44,11 +39,7 @@ class AuthorizationException(HTTPException):
 
 
 class UnknownResponse(HTTPException):
-    """Raised when getting an unknown JSON response from the API
-
-    Parameters:
-        resp: The unrecognisable JSON response decoded into a dictionary.
-    """
+    """Raised when getting an unknown JSON response from the API"""
 
     def __init__(self, *args, resp: ClientResponse):
         self.resp = resp

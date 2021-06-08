@@ -1,7 +1,5 @@
 from datetime import datetime
 
-from .commands import *
-
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
@@ -168,11 +166,8 @@ class StatsResponse:
         return datetime.strptime(self._latest_edit, DATETIME_FORMAT)
 
     @property
-    def favourite_cmd(self):  # Meh. Kinda Janky.
-        commands_view = Commands.__members__.values()
-        for command in commands_view:
-            if command.value.NAME == self._favourite_cmd:
-                return command.value
+    def favourite_cmd(self) -> str:
+        return self._favourite_cmd
 
     def __dict__(self):
         return {
