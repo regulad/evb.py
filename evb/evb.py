@@ -1,6 +1,6 @@
 from functools import wraps
 from io import BytesIO
-from typing import Optional
+from typing import Optional, Tuple
 
 from aiohttp import ClientSession, ClientResponse, FormData
 
@@ -65,7 +65,7 @@ class AsyncEditVideoBotSession:
         }
 
     @require_session
-    async def edit(self, input_media: bytes, commands: str, ext: str = "mp4") -> bytes:
+    async def edit(self, input_media: bytes, commands: str, ext: str = "mp4") -> Tuple[bytes, EditResponse]:
         """Edit a file-like object using the /edit/ endpoint.
 
         :argument input_media Bytes of media to be sent to the API.
@@ -90,7 +90,7 @@ class AsyncEditVideoBotSession:
         async with self.client_session.get(response_data.media_url) as resp:
             process_resp(resp)
 
-            return await resp.read()
+            return await resp.read(), response_data
 
     @require_session
     async def stats(self) -> StatsResponse:
