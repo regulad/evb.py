@@ -48,6 +48,10 @@ class UnknownResponse(HTTPException):
 
 
 __all__ = [
-    "LibraryException", "NoInitialisedSession", "HTTPException", "RatelimitException", "AuthorizationException",
-    "UnknownResponse"
+    "LibraryException",
+    "NoInitialisedSession",
+    "HTTPException",
+    "RatelimitException",
+    "AuthorizationException",
+    "UnknownResponse",
 ]

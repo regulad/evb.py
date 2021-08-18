@@ -1,71 +1,98 @@
-from functools import wraps
 from io import BytesIO
-from typing import Optional, Tuple
+from functools import wraps
+from typing import Union, Optional, cast, Callable, Coroutine, TypeVar
 
-from aiohttp import ClientSession, ClientResponse, FormData
+try:
+    from typing import ParamSpec
+except ImportError:
+    from typing_extensions import ParamSpec
 
-from .errors import *
+from aiohttp import ClientSession, FormData, ClientResponse
+
 from .responses import *
+from .errors import *
 
-ENDPOINT = "https://pigeonburger.xyz/api/v1/"
+_R = TypeVar("_R")
+_T = TypeVar("_T")
+_C = TypeVar("_C")
 
-
-def process_resp(resp: ClientResponse) -> None:
-    if resp.ok:
-        return None
-    elif resp.status == 401:
-        raise AuthorizationException(resp.reason)
-    elif resp.status == 429:
-        raise RatelimitException(resp=resp)
-    else:
-        raise HTTPException(resp.reason, status_code=resp.status)
+_P = ParamSpec("_P")
 
 
-def require_session(func):
+# I would have made this a static method if I could.
+def _require_session(
+    func: Callable[[_P], Coroutine[_R, _T, _C]]
+) -> Callable[[_P], Coroutine[_R, _T, _C]]:
+    """Annotates that a wrapped coroutine function requires an unclosed ClientSession"""
+
     @wraps(func)
-    async def wrapper(self, *args, **kwargs):
-        if self.client_session:
-            return await func(self, *args, **kwargs)
+    def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+        self: AsyncEditVideoBotSession = cast(AsyncEditVideoBotSession, args[0])
+
+        if self._client_session is not None and not self._client_session.closed:
+            return func(*args, **kwargs)
         else:
-            raise NoInitialisedSession
+            raise NoInitialisedSession(
+                f"The {self.__class__.__name__} is unable to find a ClientSession to communicate with. "
+                f"One is created on instantiation and is closed when exiting using the object as a context manager."
+            )
 
     return wrapper
 
 
 class AsyncEditVideoBotSession:
+    @staticmethod
+    def _process_resp(resp: ClientResponse) -> None:
+        if resp.ok:
+            return None
+        elif resp.status == 401:
+            raise AuthorizationException(resp.reason)
+        elif resp.status == 429:
+            raise RatelimitException(resp=resp)
+        else:
+            raise HTTPException(resp.reason, status_code=resp.status)
+
+    _ENDPOINT = "https://pigeonburger.xyz/api/v1/"
+
     def __init__(
-            self,
-            authorization: Authorization,
-            *,
-            client_session: Optional[ClientSession] = None,
+        self,
+        authorization: Authorization,
     ):
         self._authorization = authorization
 
-        self.client_session = client_session
-        self._client_session_is_passed = self.client_session is not None
+        self._client_session: Optional[ClientSession] = None
 
     async def __aenter__(self):
-        if not self._client_session_is_passed:
-            self.client_session = ClientSession()
-        return self
+        await self.open()
+        return self  # Retrofitting.
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if not self._client_session_is_passed:
-            await self.client_session.close()
+        await self.close()
+        self._client_session = None
+
+    async def open(self) -> None:
+        """Opens the connection. You can use this object as a context manager to automate this process."""
+
+        self._client_session = ClientSession(headers=self._headers)
+
+    async def close(self) -> None:
+        """Closes the connection."""
+
+        return await self._client_session.close()
 
     @classmethod
-    def from_api_key(cls, api_key: str, *, client_session: ClientSession = None):
-        authorization = Authorization(api_key)
-        return cls(authorization, client_session=client_session)
+    def from_api_key(cls, api_key: str):
+        authorization: Authorization = Authorization(api_key)
+        return cls(authorization)
 
     @property
-    def _headers(self):
-        return {
-            "EVB_AUTH": self._authorization.token
-        }
+    def _headers(self) -> dict:
+        return {"EVB_AUTH": self._authorization.token}
 
-    @require_session
-    async def edit(self, input_media: bytes, commands: str, ext: str = "mp4") -> Tuple[bytes, EditResponse]:
+    @_require_session
+    async def edit(
+        self, input_media: bytes, commands: str, ext: str = "mp4"
+    ) -> EditResponse:
         """Edit a file-like object using the /edit/ endpoint.
 
         :argument input_media Bytes of media to be sent to the API.
@@ -77,27 +104,26 @@ class AsyncEditVideoBotSession:
         form.add_field("file", BytesIO(input_media), filename=f"input.{ext}")
         form.add_field("commands", commands)
 
-        async with self.client_session.post(f"{ENDPOINT}edit/", headers=self._headers, data=form) as resp:
-            process_resp(resp)
+        async with self._client_session.post(
+            f"{self._ENDPOINT}edit/", data=form
+        ) as resp:
+            self._process_resp(resp)
 
             try:
-                response_data = EditResponse.from_json(await resp.json())
+                return EditResponse.from_json(
+                    await resp.json(), client=self._client_session
+                )
             except KeyError:
                 raise UnknownResponse(resp=resp)
             except Exception:
                 raise
 
-        async with self.client_session.get(response_data.media_url) as resp:
-            process_resp(resp)
-
-            return await resp.read(), response_data
-
-    @require_session
+    @_require_session
     async def stats(self) -> StatsResponse:
         """Retrieve stats from the /stats/ endpoint."""
 
-        async with self.client_session.get(f"{ENDPOINT}stats/", headers=self._headers) as resp:
-            process_resp(resp)
+        async with self._client_session.get(f"{self._ENDPOINT}stats/") as resp:
+            self._process_resp(resp)
 
             try:
                 return StatsResponse.from_json(await resp.json())

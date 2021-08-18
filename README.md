@@ -1,4 +1,4 @@
-# EVB-API-py
+# evb.py
 
 Asynchronous wrapper for the EditVideoBot API https://pigeonburger.xyz/api/docs/
 
@@ -6,7 +6,7 @@ Asynchronous wrapper for the EditVideoBot API https://pigeonburger.xyz/api/docs/
 
 ```python
 import asyncio
-from evb import AsyncEditVideoBotSession
+from evb import AsyncEditVideoBotSession, EditResponse
 
 
 async def main():
@@ -14,10 +14,10 @@ async def main():
         input_bytes = input_file.read()
         
     async with AsyncEditVideoBotSession.from_api_key("your_api_key") as evb_session:
-        output_bytes = await evb_session.edit(input_bytes, "tt=smell")
+        output_bytes: EditResponse = await evb_session.edit(input_bytes, "tt=smell")
 
     with open("output.mp4", "xb") as output_media:
-        output_media.write(output_bytes)
+        output_media.write(await output_bytes.download())
 
 asyncio.run(main())
 ```

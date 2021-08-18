@@ -1,5 +1,8 @@
 from datetime import datetime
 
+from aiohttp import ClientSession
+
+
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
@@ -16,13 +19,15 @@ class EditResponse:
     """Response received from the server when POSTing to /edit"""
 
     def __init__(
-            self,
-            error: bool,
-            code: int,
-            is_video: bool,
-            media_url: str,
-            media_size: int,
-            command_str: str,
+        self,
+        error: bool,
+        code: int,
+        is_video: bool,
+        media_url: str,
+        media_size: int,
+        command_str: str,
+        *,
+        client: ClientSession,
     ):
         self._error = error
         self._code = code
@@ -30,9 +35,10 @@ class EditResponse:
         self._media_url = media_url
         self._media_size = media_size
         self._command_str = command_str
+        self._client = client
 
     @classmethod
-    def from_json(cls, json_response: dict):
+    def from_json(cls, json_response: dict, client: ClientSession):
         return cls(
             json_response["error"],
             json_response["code"],
@@ -40,6 +46,7 @@ class EditResponse:
             json_response["media_url"],
             json_response["media_size"],
             json_response["command_str"],
+            client=client,
         )
 
     @property
@@ -77,25 +84,31 @@ class EditResponse:
         }
 
     def __getitem__(self, item):
-        return self.__dict__()[item]  #
+        return self.__dict__()[item]
+
+    async def download(self) -> bytes:
+        """Downloads the media the response refers to."""
+
+        async with self._client.get(self.media_url) as resp:
+            return await resp.read()
 
 
 class StatsResponse:
     """Response received from the server when GETing to /stats"""
 
     def __init__(
-            self,
-            error: bool,
-            code: int,
-            email: str,
-            level: str,
-            remaining_daily_requests: int,
-            videos_edited: int,
-            photos_edited: int,
-            total_edited: int,
-            first_edit: str,
-            latest_edit: str,
-            favourite_cmd: str,
+        self,
+        error: bool,
+        code: int,
+        email: str,
+        level: str,
+        remaining_daily_requests: int,
+        videos_edited: int,
+        photos_edited: int,
+        total_edited: int,
+        first_edit: str,
+        latest_edit: str,
+        favourite_cmd: str,
     ):
         self._error = error
         self._code = code
@@ -138,7 +151,9 @@ class StatsResponse:
         return self._email
 
     @property
-    def level(self):  # Should make an Enum of possible values and return an attribute of that Enum
+    def level(
+        self,
+    ):  # Should make an Enum of possible values and return an attribute of that Enum
         return self._level
 
     @property
