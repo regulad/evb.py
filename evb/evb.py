@@ -57,23 +57,25 @@ class AsyncEditVideoBotSession:
     def __init__(
         self,
         authorization: Authorization,
-    ):
+        *,
+        client_session: Optional[ClientSession] = None,
+    ) -> None:
         self._authorization = authorization
+        self._client_session: Optional[ClientSession] = client_session
 
-        self._client_session: Optional[ClientSession] = None
+    @property
+    def closed(self) -> bool:
+        return self._client_session.closed
 
     async def __aenter__(self):
         await self.open()
-        return self  # Retrofitting.
+        return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.close()
-        self._client_session = None
 
-    async def open(self) -> None:
-        """Opens the connection. You can use this object as a context manager to automate this process."""
-
-        self._client_session = ClientSession(headers=self._headers)
+    async def open(self, client_session: Optional[ClientSession] = None) -> None:
+        self._client_session = client_session or self._client_session or ClientSession()
 
     async def close(self) -> None:
         """Closes the connection."""
@@ -105,7 +107,7 @@ class AsyncEditVideoBotSession:
         form.add_field("commands", commands)
 
         async with self._client_session.post(
-            f"{self._ENDPOINT}edit/", data=form
+            f"{self._ENDPOINT}edit/", data=form, headers=self._headers
         ) as resp:
             self._process_resp(resp)
 
@@ -122,7 +124,7 @@ class AsyncEditVideoBotSession:
     async def stats(self) -> StatsResponse:
         """Retrieve stats from the /stats/ endpoint."""
 
-        async with self._client_session.get(f"{self._ENDPOINT}stats/") as resp:
+        async with self._client_session.get(f"{self._ENDPOINT}stats/", headers=self._headers) as resp:
             self._process_resp(resp)
 
             try:
