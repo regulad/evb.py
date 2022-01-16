@@ -1,12 +1,15 @@
-import importlib_resources
-import unittest
-import evb
 import os
+import unittest
+
+import importlib_resources
+
+import evb
 
 
 class TestStatsResponse(unittest.IsolatedAsyncioTestCase):
     def setUp(self) -> None:
-        self._session: evb.AsyncEditVideoBotSession = evb.AsyncEditVideoBotSession.from_api_key(os.environ.get("TEST_API_KEY"))
+        self._session: evb.AsyncEditVideoBotSession = evb.AsyncEditVideoBotSession.from_api_key(
+            os.environ.get("TEST_API_KEY"))
 
     async def asyncSetUp(self) -> None:
         await self._session.open()
@@ -21,7 +24,8 @@ class TestStatsResponse(unittest.IsolatedAsyncioTestCase):
 
 class TestEditResponse(unittest.IsolatedAsyncioTestCase):
     def setUp(self) -> None:
-        self._session: evb.AsyncEditVideoBotSession = evb.AsyncEditVideoBotSession.from_api_key(os.environ.get("TEST_API_KEY"))
+        self._session: evb.AsyncEditVideoBotSession = evb.AsyncEditVideoBotSession.from_api_key(
+            os.environ.get("TEST_API_KEY"))
         self._video_data: bytes = importlib_resources.files("evb.tests.data").joinpath("carlos.mp4").read_bytes()
 
     async def asyncSetUp(self) -> None:

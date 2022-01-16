@@ -2,7 +2,6 @@ from datetime import datetime
 
 from aiohttp import ClientSession
 
-
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
@@ -19,15 +18,15 @@ class EditResponse:
     """Response received from the server when POSTing to /edit"""
 
     def __init__(
-        self,
-        error: bool,
-        code: int,
-        is_video: bool,
-        media_url: str,
-        media_size: int,
-        command_str: str,
-        *,
-        client: ClientSession,
+            self,
+            error: bool,
+            code: int,
+            is_video: bool,
+            media_url: str,
+            media_size: int,
+            command_str: str,
+            *,
+            client: ClientSession,
     ):
         self._error = error
         self._code = code
@@ -97,18 +96,18 @@ class StatsResponse:
     """Response received from the server when GETing to /stats"""
 
     def __init__(
-        self,
-        error: bool,
-        code: int,
-        email: str,
-        level: str,
-        remaining_daily_requests: int,
-        videos_edited: int,
-        photos_edited: int,
-        total_edited: int,
-        first_edit: str,
-        latest_edit: str,
-        favourite_cmd: str,
+            self,
+            error: bool,
+            code: int,
+            email: str,
+            level: str,
+            remaining_daily_requests: int,
+            videos_edited: int,
+            photos_edited: int,
+            total_edited: int,
+            first_edit: str,
+            latest_edit: str,
+            favourite_cmd: str,
     ):
         self._error = error
         self._code = code
@@ -152,7 +151,7 @@ class StatsResponse:
 
     @property
     def level(
-        self,
+            self,
     ):  # Should make an Enum of possible values and return an attribute of that Enum
         return self._level
 

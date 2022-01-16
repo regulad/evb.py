@@ -1,6 +1,6 @@
-from io import BytesIO
 from functools import wraps
-from typing import Union, Optional, cast, Callable, Coroutine, TypeVar
+from io import BytesIO
+from typing import Optional, cast, Callable, Coroutine, TypeVar
 
 try:
     from typing import ParamSpec
@@ -21,7 +21,7 @@ _P = ParamSpec("_P")
 
 # I would have made this a static method if I could.
 def _require_session(
-    func: Callable[[_P], Coroutine[_R, _T, _C]]
+        func: Callable[[_P], Coroutine[_R, _T, _C]]
 ) -> Callable[[_P], Coroutine[_R, _T, _C]]:
     """Annotates that a wrapped coroutine function requires an unclosed ClientSession"""
 
@@ -55,10 +55,10 @@ class AsyncEditVideoBotSession:
     _ENDPOINT = "https://pigeonburger.xyz/api/v1/"
 
     def __init__(
-        self,
-        authorization: Authorization,
-        *,
-        client_session: Optional[ClientSession] = None,
+            self,
+            authorization: Authorization,
+            *,
+            client_session: Optional[ClientSession] = None,
     ) -> None:
         self._authorization = authorization
         self._client_session: Optional[ClientSession] = client_session
@@ -93,7 +93,7 @@ class AsyncEditVideoBotSession:
 
     @_require_session
     async def edit(
-        self, input_media: bytes, commands: str, ext: str = "mp4"
+            self, input_media: bytes, commands: str, ext: str = "mp4"
     ) -> EditResponse:
         """Edit a file-like object using the /edit/ endpoint.
 
@@ -107,7 +107,7 @@ class AsyncEditVideoBotSession:
         form.add_field("commands", commands)
 
         async with self._client_session.post(
-            f"{self._ENDPOINT}edit/", data=form, headers=self._headers
+                f"{self._ENDPOINT}edit/", data=form, headers=self._headers
         ) as resp:
             self._process_resp(resp)
 
